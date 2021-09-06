@@ -3,7 +3,8 @@ import time
 import math
 
 from bleak import BleakScanner, BleakError, BleakClient
-from helpers import int_to_hex, get_rgb_hex, get_brightness_hex
+from helpers import check_muted, int_to_hex, get_rgb_hex, get_brightness_hex
+
 import re
 
 start_time = time.time()
@@ -79,18 +80,25 @@ async def run():
             red = 0x00
             green = 0x00
             blue = 0x00
-            phase = 0.0
+            phase1 = 0.0
+            phase2 = 0.1
+            phase3 = 0.2
             width = 127
             center = 128
             while (device.is_connected):
-                await setWholeColour(device, red, green, blue)
+                if (check_muted()): 
+                    await setWholeColour(device, 0xFF, 0x00, 0x00)
+                else: 
+                    await setWholeColour(device, red, green, blue)
 
-                red = math.ceil(math.sin(0 + phase) * width + center) % 0xff
-                green = math.ceil(math.sin(2 + phase) * width + center) % 0xff
-                blue = math.ceil( math.sin(4 + phase) * width + center) % 0xff
+                    red = math.ceil(math.sin(0 + phase1) * width + center) 
+                    green = math.ceil(math.sin(2 + phase2) * width + center) 
+                    blue = math.ceil( math.sin(4 + phase3) * width + center)
 
-                phase += 0.05
-                time.sleep(0.1)
+                    phase1 += 0.05
+                    phase2 += 0.04
+                    phase3 += 0.07
+                    time.sleep(0.1)
 
 
             print(f"Disconnected after {time.perf_counter() - timebefore}")
