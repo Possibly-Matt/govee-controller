@@ -1,5 +1,7 @@
 import asyncio
 import time
+import math
+
 from bleak import BleakScanner, BleakError, BleakClient
 from helpers import int_to_hex, get_rgb_hex, get_brightness_hex
 import re
@@ -29,6 +31,11 @@ async def do_keepalive_every_2_seconds(device):
 async def sendPayload(device, payload):
     await device.write_gatt_char(UUID_CONTROL_CHARACTERISTIC, bytes(payload))
 
+async def setWholeColour(device, RED, GREEN, BLUE):
+    print(f"set whole colour to {RED} {GREEN} {BLUE}")
+    payload = [0x33, 0x05, 0x02, RED, GREEN, BLUE, 0x00, 0xFF, 0xAE, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (0x31 ^ RED ^ GREEN ^ BLUE)]
+    await sendPayload(device, payload)
+    
 
 async def setBrightness(device, BRIGHTNESS):
     print(f"setting brightness to {BRIGHTNESS}")    
@@ -67,15 +74,28 @@ async def run():
             # asyncio.run(do_keepalive_every_2_seconds(device))
             
             print("done")
-            bright = 0
+            await setBrightness(device, 0xFF)
+
+            red = 0x00
+            green = 0x00
+            blue = 0x00
+            phase = 0.0
+            width = 127
+            center = 128
             while (device.is_connected):
-                bright = (bright + 1) % 0xFF
-                await setBrightness(device, bright)
+                await setWholeColour(device, red, green, blue)
+
+                red = math.ceil(math.sin(0 + phase) * width + center) % 0xff
+                green = math.ceil(math.sin(2 + phase) * width + center) % 0xff
+                blue = math.ceil( math.sin(4 + phase) * width + center) % 0xff
+
+                phase += 0.05
                 time.sleep(0.1)
+
 
             print(f"Disconnected after {time.perf_counter() - timebefore}")
     except KeyboardInterrupt: 
-        print("keyboard interrupt!")
+        print("keyboard interrupt oh no!")
         pass
     finally:
         print("disconnecting")
